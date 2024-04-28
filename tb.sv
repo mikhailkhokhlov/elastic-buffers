@@ -187,13 +187,26 @@ module testbench();
 
   sk_test tb(skb_if);
 
-  pipe_skid_buffer dut(.i_clock      ( clock                    ),
-                       .i_reset      ( reset                    ),
-                       .i_data       ( skb_if.input_data        ),
-                       .i_data_valid ( skb_if.input_data_valid  ),
-                       .o_data_ready ( skb_if.input_data_ready  ),
-                       .o_data       ( skb_if.output_data       ),
-                       .o_data_valid ( skb_if.output_data_valid ),
-                       .i_data_ready ( skb_if.output_data_ready ));
+`ifdef RTL1
+    skid_buffer dut(.i_clock      ( clock                    ),
+                    .i_reset      ( reset                    ),
+                    .i_data       ( skb_if.input_data        ),
+                    .i_data_valid ( skb_if.input_data_valid  ),
+                    .o_data_ready ( skb_if.input_data_ready  ),
+                    .o_data       ( skb_if.output_data       ),
+                    .o_data_valid ( skb_if.output_data_valid ),
+                    .i_data_ready ( skb_if.output_data_ready ));
+`elsif RTL2
+    pipe_skid_buffer dut(.i_clock      ( clock                    ),
+                         .i_reset      ( reset                    ),
+                         .i_data       ( skb_if.input_data        ),
+                         .i_data_valid ( skb_if.input_data_valid  ),
+                         .o_data_ready ( skb_if.input_data_ready  ),
+                         .o_data       ( skb_if.output_data       ),
+                         .o_data_valid ( skb_if.output_data_valid ),
+                         .i_data_ready ( skb_if.output_data_ready ));
+`else
+    $error("DUT is not defined");
+`endif
 
 endmodule
