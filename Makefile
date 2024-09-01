@@ -1,4 +1,4 @@
-OUT      := $(RTL_MODULE_DIR)/out
+OUT      := $(TEST)/out
 WORK     := work
 CLOG     := compile.log
 SLOG     := sim.log
@@ -10,6 +10,8 @@ IFACE    := skb_if
 DO       := do.tcl 
 WAVES    := 1
 SIM_OPTS := -gui
+
+TEST_RTL := $(shell echo $(TEST) | tr '[:lower:]' '[:upper:]' | tr '-' '_')=1
 
 RTL_MODULES = $(shell ls -d */ | sed 's/\///')
 
@@ -24,20 +26,12 @@ export SIM_OPTS
 
 #v=@
 
-ifeq ($(RTL_MODULE_DIR),)
-  $(info Need to specify RTL module for testing, possible RTLs are:)
+ifeq ($(TEST),)
+  $(info Need to specify TEST module for testing, possible modules are:)
   $(info )
-  $(info $(RTL_MODULES))
+  $(foreach dut, $(RTL_MODULES), $(info $(dut)))
   $(info )
-  $(error RTL_MODULE_DIR is not set)
-endif
-
-ifeq ($(RTL_MODULE_DIR), skid-buffer)
-  RTL="RTL1=1"
-endif
-
-ifeq ($(RTL_MODULE_DIR), pipe-skid-buffer)
-  RTL="RTL2=1"
+  $(error TEST is not set)
 endif
 
 SRC_VERILOG=$(shell find $(RTL_MODULE) -name "*.v")
@@ -45,9 +39,10 @@ SRC_SV=tb.sv
 
 $(OUT)/compile.stamp: $(SRC_SV) $(SRC_VERILOG) $(OUT)
 	@echo "Compile sources..."
+	@echo $(TEST1)
 	$(v)vlib $(OUT)/$(WORK) > $(OUT)/$(CLOG)
 	$(v)vmap work $(OUT)/$(WORK) >> $(OUT)/$(CLOG)
-	$(v)vlog -define $(RTL) -sv -work $(WORK) $(SRC_SV) $(SRC_VERILOG) >> $(OUT)/$(CLOG)
+	$(v)vlog -define $(TEST_RTL) -sv -work $(WORK) $(SRC_SV) $(SRC_VERILOG) >> $(OUT)/$(CLOG)
 	@touch $@
 
 $(OUT):

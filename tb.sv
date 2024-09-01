@@ -187,7 +187,7 @@ module testbench();
 
   sk_test tb(skb_if);
 
-`ifdef RTL1
+`ifdef SKID_BUFFER
     skid_buffer dut(.i_clock      ( clock                    ),
                     .i_reset      ( reset                    ),
                     .i_data       ( skb_if.input_data        ),
@@ -196,7 +196,7 @@ module testbench();
                     .o_data       ( skb_if.output_data       ),
                     .o_data_valid ( skb_if.output_data_valid ),
                     .i_data_ready ( skb_if.output_data_ready ));
-`elsif RTL2
+`elsif PIPE_SKID_BUFFER
     pipe_skid_buffer dut(.i_clock      ( clock                    ),
                          .i_reset      ( reset                    ),
                          .i_data       ( skb_if.input_data        ),
