@@ -12,6 +12,7 @@ interface sk_buffer_if #(parameter DWIDTH = 8)
   logic                  output_data_ready;
 
   clocking cb @(posedge clock);
+    default input #1ns output #1ns;
 
     output input_data;
     output input_data_valid;
@@ -23,7 +24,20 @@ interface sk_buffer_if #(parameter DWIDTH = 8)
 
   endclocking
 
+  clocking cb_mon @(posedge clock);
+
+    input input_data;
+    input input_data_valid;
+    input input_data_ready;
+
+    input output_data;
+    input output_data_valid;
+    input output_data_ready;
+
+  endclocking
+
   modport TEST(clocking cb,
+               clocking cb_mon,
                input reset);
 
 endinterface
@@ -38,21 +52,19 @@ program sk_test #(parameter DWIDTH = 8,
   int                    in_valid_delay;
   logic                  out_ready;
 
-  logic                  input_valid_prev;
-  logic [(DWIDTH - 1):0] input_data_prev;
-
-  logic                  output_ready_prev;
-
   mailbox                in_mbx = new();
   mailbox                out_mbx = new();
 
   // drive input
   initial begin
     @(negedge skb_if.reset);
-    @skb_if.cb;
 
     for (int i = 0; i < COUNT; i++)
       begin
+        do
+          @skb_if.cb;
+        while(~skb_if.cb.input_data_ready);
+
         assert(std::randomize(in_valid_delay) with {
           in_valid_delay dist { 0:/30, [1:3]:/70 };
         }) else begin
@@ -68,27 +80,18 @@ program sk_test #(parameter DWIDTH = 8,
         skb_if.cb.input_data       <= $urandom_range(0, 2**DWIDTH);
         skb_if.cb.input_data_valid <= 1'b1;
 
-        do
-          @skb_if.cb;
-        while(~skb_if.cb.input_data_ready);
-      end
+       end
   end
 
   // monitor input
   initial begin
     @(negedge skb_if.reset);
-    @skb_if.cb;
-
     $display("[%0t] start input monitor", $time);
 
     forever begin
-      input_valid_prev = skb_if.cb.input_data_valid;
-      input_data_prev  = skb_if.cb.input_data;
-
-      @skb_if.cb;
-
-      if (input_valid_prev & skb_if.cb.input_data_ready) begin
-        in_mbx.put(input_data_prev);
+      @skb_if.cb_mon;
+      if (skb_if.cb_mon.input_data_valid & skb_if.cb_mon.input_data_ready) begin
+        in_mbx.put(skb_if.cb_mon.input_data);
       end
     end
   end
@@ -96,9 +99,10 @@ program sk_test #(parameter DWIDTH = 8,
   // drive output
   initial begin
     @(negedge skb_if.reset);
-    @skb_if.cb;
 
     forever begin
+      @skb_if.cb;
+
       assert(std::randomize(out_ready) with {
         out_ready dist { 0:/50, 1:/50 }; 
       }) else begin
@@ -107,7 +111,6 @@ program sk_test #(parameter DWIDTH = 8,
       end
 
       skb_if.cb.output_data_ready <= out_ready;
-      @skb_if.cb;
     end
   end
 
@@ -118,12 +121,9 @@ program sk_test #(parameter DWIDTH = 8,
     $display("[%0t] start output monitor", $time);
 
     forever begin
-      output_ready_prev = skb_if.cb.output_data_ready;
-
-      @skb_if.cb;
-
-      if (skb_if.cb.output_data_valid & output_ready_prev) begin
-        out_mbx.put(skb_if.cb.output_data);
+      @skb_if.cb_mon;
+      if (skb_if.cb_mon.output_data_valid & skb_if.cb_mon.output_data_ready) begin
+        out_mbx.put(skb_if.cb_mon.output_data);
       end
     end
   end
